@@ -94,3 +94,44 @@ def test_generate_research_plan_api_error():
 
         with pytest.raises(RuntimeError, match="Simulated API failure"):
             generate_research_plan("Explain generative AI in healthcare.")
+
+
+def test_generate_research_plan_unexpected_output_type():
+    mock_response = MagicMock()
+    mock_response.output_parsed = {"unexpected": "data"}
+
+    with patch(
+        "researchpilot.planner.research_planner.create_client"
+    ) as mock_create_client:
+
+        mock_client = MagicMock()
+        mock_client.responses.parse.return_value = mock_response
+        mock_create_client.return_value = mock_client
+
+        with pytest.raises(
+            RuntimeError,
+            match="The model returned an unexpected research plan format.",
+        ):
+            generate_research_plan(
+                "Explain generative AI in healthcare."
+            )
+
+def test_generate_research_plan_missing_output_attribute():
+    mock_response = MagicMock(spec=[])
+
+    with patch(
+        "researchpilot.planner.research_planner.create_client"
+    ) as mock_create_client:
+
+        mock_client = MagicMock()
+        mock_client.responses.parse.return_value = mock_response
+        mock_create_client.return_value = mock_client
+
+        with pytest.raises(
+            RuntimeError,
+            match="The model did not return a valid research plan.",
+        ):
+            generate_research_plan(
+                "Explain generative AI in healthcare."
+            )
+
