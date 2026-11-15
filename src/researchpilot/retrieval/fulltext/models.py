@@ -66,3 +66,25 @@ class TextChunk(BaseModel):
     def character_count(self) -> int:
         """Return the number of characters in the chunk."""
         return len(self.text)
+    
+
+class Evidence(BaseModel):
+    """A traceable piece of academic evidence."""
+
+    evidence_id: str
+    paper_id: str
+    title: str
+    doi: str | None = None
+    source_url: str
+    pdf_url: str
+    page_number: int = Field(ge=1)
+    chunk_index: int = Field(ge=0)
+    text: str = Field(min_length=1)
+    start_char: int = Field(ge=0)
+    end_char: int = Field(gt=0)
+
+    @property
+    def character_count(self) -> int:
+        """Return the number of characters in the evidence."""
+        return len(self.text)
+
