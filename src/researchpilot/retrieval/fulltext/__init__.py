@@ -1,3 +1,4 @@
+
 """Full-text retrieval and evidence processing."""
 
 from researchpilot.retrieval.fulltext.extractor import (
@@ -9,6 +10,7 @@ from researchpilot.retrieval.fulltext.models import (
     ExtractedPage,
     PDFDocument,
 )
+from researchpilot.retrieval.fulltext.normalizer import TextNormalizer
 
 __all__ = [
     "ExtractedDocument",
@@ -16,4 +18,5 @@ __all__ = [
     "PDFDocument",
     "PDFExtractionError",
     "PDFExtractor",
+    "TextNormalizer",
 ]
