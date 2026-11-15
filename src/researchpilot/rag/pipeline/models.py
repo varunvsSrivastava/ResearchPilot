@@ -13,6 +13,7 @@ class RAGPipelineRequest(BaseModel):
     query: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1)
     metadata_filter: MetadataFilter | None = None
+    generate_answer: bool = False
 
 
 class RAGPipelineResult(BaseModel):
@@ -22,3 +23,4 @@ class RAGPipelineResult(BaseModel):
     retrieval_response: RetrievalResponse
     context: str = ""
     total_results: int = 0
+    answer: str | None = None

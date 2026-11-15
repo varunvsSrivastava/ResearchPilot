@@ -2,7 +2,8 @@
 """Tests for RAG pipeline orchestration."""
 
 from unittest.mock import MagicMock
-
+from unittest.mock import MagicMock
+from researchpilot.rag.pipeline.generation import AnswerGenerationService
 from researchpilot.rag.pipeline import (
     RAGPipelineRequest,
     RAGPipelineService,
@@ -111,3 +112,101 @@ def test_pipeline_handles_empty_retrieval_results():
     assert result.context == ""
     assert result.total_results == 0
     assert result.retrieval_response.results == []
+
+
+
+def test_pipeline_generates_answer_when_requested():
+    """Pipeline should generate an answer from assembled context."""
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = RetrievalResponse(
+        query="AI research",
+        results=[
+            create_result("evidence-1", "AI improves diagnosis.", 0.9),
+        ],
+        total_results=1,
+    )
+
+    generation_service = MagicMock()
+    generation_service.generate.return_value = (
+        "AI improves diagnosis [Source 1]."
+    )
+
+    pipeline = RAGPipelineService(
+        retrieval_service=retrieval_service,
+        answer_generation_service=generation_service,
+    )
+
+    result = pipeline.execute(
+        RAGPipelineRequest(
+            query="How does AI help healthcare?",
+            generate_answer=True,
+        )
+    )
+
+    assert result.answer == "AI improves diagnosis [Source 1]."
+    assert "[Source 1]" in result.context
+
+    generation_service.generate.assert_called_once_with(
+        query="How does AI help healthcare?",
+        context=result.context,
+    )
+
+
+def test_pipeline_skips_generation_by_default():
+    """Generation should remain disabled by default."""
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = RetrievalResponse(
+        query="AI research",
+        results=[],
+        total_results=0,
+    )
+
+    generation_service = MagicMock()
+
+    pipeline = RAGPipelineService(
+        retrieval_service=retrieval_service,
+        answer_generation_service=generation_service,
+    )
+
+    result = pipeline.execute(
+        RAGPipelineRequest(query="AI research")
+    )
+
+    assert result.answer is None
+    generation_service.generate.assert_not_called()
+
+
+def test_pipeline_generates_fallback_for_empty_context():
+    """Empty evidence should produce an insufficient-evidence answer."""
+    retrieval_service = MagicMock()
+    retrieval_service.retrieve.return_value = RetrievalResponse(
+        query="Unknown topic",
+        results=[],
+        total_results=0,
+    )
+
+    generation_service = MagicMock()
+    generation_service.generate.return_value = (
+        AnswerGenerationService.INSUFFICIENT_EVIDENCE_RESPONSE
+    )
+
+    pipeline = RAGPipelineService(
+        retrieval_service=retrieval_service,
+        answer_generation_service=generation_service,
+    )
+
+    result = pipeline.execute(
+        RAGPipelineRequest(
+            query="Unknown topic",
+            generate_answer=True,
+        )
+    )
+
+    assert result.context == ""
+    assert result.answer == (
+        AnswerGenerationService.INSUFFICIENT_EVIDENCE_RESPONSE
+    )
+    generation_service.generate.assert_called_once_with(
+        query="Unknown topic",
+        context="",
+    )
