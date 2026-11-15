@@ -45,3 +45,24 @@ class ExtractedDocument(BaseModel):
     def full_text(self) -> str:
         """Combine page text while preserving page boundaries."""
         return "\n\n".join(page.text for page in self.pages)
+
+
+
+class TextChunk(BaseModel):
+    """A text chunk with academic source provenance."""
+
+    paper_id: str
+    title: str
+    doi: str | None = None
+    source_url: str
+    pdf_url: str
+    page_number: int = Field(ge=1)
+    chunk_index: int = Field(ge=0)
+    text: str = Field(min_length=1)
+    start_char: int = Field(ge=0)
+    end_char: int = Field(gt=0)
+
+    @property
+    def character_count(self) -> int:
+        """Return the number of characters in the chunk."""
+        return len(self.text)

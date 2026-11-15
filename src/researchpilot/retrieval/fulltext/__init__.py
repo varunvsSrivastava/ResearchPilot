@@ -1,6 +1,7 @@
 
 """Full-text retrieval and evidence processing."""
-
+from researchpilot.retrieval.fulltext.chunker import TextChunker
+from researchpilot.retrieval.fulltext.models import TextChunk
 from researchpilot.retrieval.fulltext.extractor import (
     PDFExtractionError,
     PDFExtractor,
