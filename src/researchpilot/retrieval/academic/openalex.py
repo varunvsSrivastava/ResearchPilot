@@ -62,6 +62,38 @@ class OpenAlexProvider(AcademicSearchProvider):
         return doi
 
     @staticmethod
+    def _extract_pdf_urls(work: dict[str, Any]) -> list[str]:
+        """Extract unique PDF URLs, prioritizing the best OA location."""
+        pdf_urls: list[str] = []
+        seen_urls: set[str] = set()
+
+        best_oa_location = work.get("best_oa_location") or {}
+        locations = work.get("locations") or []
+
+        candidates = [
+            best_oa_location.get("pdf_url"),
+            *[
+                location.get("pdf_url")
+                for location in locations
+                if isinstance(location, dict)
+            ],
+        ]
+
+        for url in candidates:
+            if not isinstance(url, str):
+                continue
+
+            url = url.strip()
+
+            if not url or url in seen_urls:
+                continue
+
+            seen_urls.add(url)
+            pdf_urls.append(url)
+
+        return pdf_urls
+
+    @staticmethod
     def _parse_work(
         work: dict[str, Any],
         query: str,
@@ -74,7 +106,7 @@ class OpenAlexProvider(AcademicSearchProvider):
         ]
 
         open_access = work.get("open_access") or {}
-        best_oa_location = work.get("best_oa_location") or {}
+        pdf_urls = OpenAlexProvider._extract_pdf_urls(work)
 
         return Paper(
             paper_id=work["id"].rsplit("/", maxsplit=1)[-1],
@@ -87,7 +119,8 @@ class OpenAlexProvider(AcademicSearchProvider):
             publication_year=work.get("publication_year"),
             doi=OpenAlexProvider._normalize_doi(work.get("doi")),
             source_url=work["id"],
-            pdf_url=best_oa_location.get("pdf_url"),
+            pdf_url=pdf_urls[0] if pdf_urls else None,
+            pdf_urls=pdf_urls,
             citation_count=work.get("cited_by_count"),
             is_open_access=open_access.get("is_oa"),
             search_query=query,

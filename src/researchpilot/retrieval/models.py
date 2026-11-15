@@ -14,6 +14,7 @@ class Paper(BaseModel):
     doi: str | None = None
     source_url: str
     pdf_url: str | None = None
+    pdf_urls: list[str] = Field(default_factory=list)
     citation_count: int | None = None
     is_open_access: bool | None = None
     search_query: str

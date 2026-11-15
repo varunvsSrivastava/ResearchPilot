@@ -75,3 +75,88 @@ def test_search_rejects_empty_query():
 
     with pytest.raises(ValueError):
         provider.search("   ")
+
+
+def test_extract_pdf_urls_prioritizes_best_oa_location():
+    work = {
+        "best_oa_location": {
+            "pdf_url": "https://example.com/best.pdf"
+        },
+        "locations": [
+            {"pdf_url": "https://example.com/other.pdf"},
+            {"pdf_url": "https://example.com/best.pdf"},
+        ],
+    }
+
+    pdf_urls = OpenAlexProvider._extract_pdf_urls(work)
+
+    assert pdf_urls == [
+        "https://example.com/best.pdf",
+        "https://example.com/other.pdf",
+    ]
+
+
+def test_extract_pdf_urls_uses_fallback_locations():
+    work = {
+        "best_oa_location": {},
+        "locations": [
+            {"pdf_url": "https://example.com/fallback.pdf"},
+        ],
+    }
+
+    pdf_urls = OpenAlexProvider._extract_pdf_urls(work)
+
+    assert pdf_urls == ["https://example.com/fallback.pdf"]
+
+
+def test_extract_pdf_urls_ignores_invalid_and_duplicate_urls():
+    work = {
+        "best_oa_location": {
+            "pdf_url": "https://example.com/paper.pdf"
+        },
+        "locations": [
+            {"pdf_url": "https://example.com/paper.pdf"},
+            {"pdf_url": ""},
+            {"pdf_url": None},
+            {},
+            None,
+        ],
+    }
+
+    pdf_urls = OpenAlexProvider._extract_pdf_urls(work)
+
+    assert pdf_urls == ["https://example.com/paper.pdf"]
+
+
+def test_extract_pdf_urls_returns_empty_when_unavailable():
+    work = {
+        "best_oa_location": {},
+        "locations": [],
+    }
+
+    assert OpenAlexProvider._extract_pdf_urls(work) == []
+
+
+def test_extract_pdf_urls_handles_missing_locations():
+    assert OpenAlexProvider._extract_pdf_urls({}) == []
+
+
+def test_parse_work_preserves_all_pdf_urls():
+    work = {
+        "id": "https://openalex.org/W123",
+        "display_name": "Research Paper",
+        "best_oa_location": {
+            "pdf_url": "https://example.com/best.pdf"
+        },
+        "locations": [
+            {"pdf_url": "https://example.com/other.pdf"},
+        ],
+    }
+
+    paper = OpenAlexProvider._parse_work(work, "research paper")
+
+    assert paper.pdf_url == "https://example.com/best.pdf"
+    assert paper.pdf_urls == [
+        "https://example.com/best.pdf",
+        "https://example.com/other.pdf",
+    ]
