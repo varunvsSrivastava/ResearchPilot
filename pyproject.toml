@@ -12,7 +12,8 @@ dependencies = [
     "openai",
     "python-dotenv",
     "pydantic",
-    "pytest"
+    "pytest",
+    "httpx",
 ]
 
 [tool.setuptools.packages.find]
@@ -21,3 +22,4 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+

@@ -35,3 +35,6 @@ data/*
 
 # Generated package metadata
 *.egg-info/
+
+# Downloaded academic PDFs
+data/papers/
