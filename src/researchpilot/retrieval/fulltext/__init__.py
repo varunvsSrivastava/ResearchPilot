@@ -3,6 +3,10 @@
 from researchpilot.retrieval.fulltext.chunker import TextChunker
 from researchpilot.retrieval.fulltext.models import TextChunk
 from researchpilot.retrieval.fulltext.evidence import EvidenceGenerator
+from researchpilot.retrieval.fulltext.service import (
+    FullTextAcquisitionError,
+    FullTextAcquisitionService,
+)
 from researchpilot.retrieval.fulltext.models import (
     Evidence,
     ExtractedDocument,
@@ -25,4 +29,6 @@ __all__ = [
     "TextNormalizer",
     "Evidence",
     "EvidenceGenerator",
+    "FullTextAcquisitionError",
+    "FullTextAcquisitionService",
 ]
