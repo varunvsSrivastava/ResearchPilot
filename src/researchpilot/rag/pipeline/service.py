@@ -1,6 +1,7 @@
 
 """RAG pipeline orchestration service."""
 
+from researchpilot.rag.pipeline.context import ContextBuilder
 from researchpilot.rag.pipeline.models import (
     RAGPipelineRequest,
     RAGPipelineResult,
@@ -12,8 +13,14 @@ from researchpilot.rag.retrieval.models import RetrievalRequest
 class RAGPipelineService:
     """Orchestrate semantic retrieval and evidence context assembly."""
 
-    def __init__(self, retrieval_service: RetrievalService) -> None:
+    def __init__(
+        self,
+        retrieval_service: RetrievalService,
+        context_builder: ContextBuilder | None = None,
+    ) -> None:
+        """Initialize the RAG pipeline service."""
         self.retrieval_service = retrieval_service
+        self.context_builder = context_builder or ContextBuilder()
 
     def execute(
         self,
@@ -30,35 +37,9 @@ class RAGPipelineService:
             retrieval_request
         )
 
-        context_sections = []
-
-        for index, result in enumerate(
-            retrieval_response.results,
-            start=1,
-        ):
-            metadata = result.record.metadata
-
-            source_lines = [
-                f"[Source {index}]",
-                f"Evidence ID: {result.record.id}",
-            ]
-
-            for field, label in (
-                ("paper_id", "Paper ID"),
-                ("title", "Title"),
-                ("doi", "DOI"),
-                ("page_number", "Page"),
-            ):
-                value = metadata.get(field)
-                if value is not None:
-                    source_lines.append(f"{label}: {value}")
-
-            source_lines.append("Evidence:")
-            source_lines.append(result.record.text)
-
-            context_sections.append("\n".join(source_lines))
-
-        context = "\n\n".join(context_sections)
+        context = self.context_builder.build(
+            retrieval_response.results
+        )
 
         return RAGPipelineResult(
             query=request.query,
