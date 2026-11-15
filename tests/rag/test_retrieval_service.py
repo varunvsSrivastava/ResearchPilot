@@ -2,7 +2,10 @@
 """Tests for semantic retrieval service."""
 
 from unittest.mock import Mock
-
+from researchpilot.rag.retrieval.ranking.base import RankingStrategy
+from researchpilot.rag.retrieval.ranking.similarity_ranker import (
+    SimilarityRanker,
+)
 import pytest
 
 from researchpilot.rag.embeddings.models import EmbeddingVector
@@ -151,3 +154,90 @@ def test_retrieve_passes_metadata_filter(
         top_k=3,
         metadata_filter=metadata_filter,
     )
+
+
+def test_retrieve_uses_custom_ranking_strategy(
+    embedding_provider,
+    vector_store,
+):
+    """Verify that retrieval delegates ranking to the injected strategy."""
+    ranking_strategy = Mock(spec=RankingStrategy)
+
+    search_results = vector_store.search.return_value.results
+    ranking_strategy.rank.return_value = search_results
+
+    service = SemanticRetrievalService(
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        ranking_strategy=ranking_strategy,
+    )
+
+    response = service.retrieve(
+        RetrievalRequest(query="machine learning")
+    )
+
+    ranking_strategy.rank.assert_called_once_with(search_results)
+    assert response.results == search_results
+
+
+def test_retrieve_returns_custom_ranked_results(
+    embedding_provider,
+    vector_store,
+):
+    """Return results in the order provided by the ranking strategy."""
+    search_results = vector_store.search.return_value.results
+
+    ranking_strategy = Mock(spec=RankingStrategy)
+    ranking_strategy.rank.return_value = list(reversed(search_results))
+
+    service = SemanticRetrievalService(
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+        ranking_strategy=ranking_strategy,
+    )
+
+    response = service.retrieve(
+        RetrievalRequest(query="machine learning")
+    )
+
+    assert response.results == list(reversed(search_results))
+    assert response.total_results == len(response.results)
+    assert response.is_valid
+
+
+def test_retrieve_uses_default_similarity_ranker(
+    embedding_provider,
+    vector_store,
+):
+    """Use SimilarityRanker when no ranking strategy is provided."""
+    first_result = vector_store.search.return_value.results[0]
+
+    second_result = VectorSearchResult(
+        record=VectorRecord(
+            id="evidence-2",
+            text="Additional machine learning evidence",
+            vector=[0.2, 0.3, 0.4],
+        ),
+        score=0.99,
+    )
+
+    vector_store.search.return_value = VectorSearchResponse(
+        results=[first_result, second_result],
+        total_results=2,
+    )
+
+    service = SemanticRetrievalService(
+        embedding_provider=embedding_provider,
+        vector_store=vector_store,
+    )
+
+    assert isinstance(service.ranking_strategy, SimilarityRanker)
+
+    response = service.retrieve(
+        RetrievalRequest(query="machine learning")
+    )
+
+    assert [result.record.id for result in response.results] == [
+        "evidence-2",
+        "evidence-1",
+    ]

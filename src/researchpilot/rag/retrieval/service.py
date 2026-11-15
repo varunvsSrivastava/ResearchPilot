@@ -7,6 +7,10 @@ from researchpilot.rag.retrieval.models import (
     RetrievalRequest,
     RetrievalResponse,
 )
+from researchpilot.rag.retrieval.ranking.base import RankingStrategy
+from researchpilot.rag.retrieval.ranking.similarity_ranker import (
+    SimilarityRanker,
+)
 from researchpilot.rag.vectorstore.base import VectorStore
 
 
@@ -17,16 +21,18 @@ class SemanticRetrievalService(RetrievalService):
         self,
         embedding_provider: EmbeddingProvider,
         vector_store: VectorStore,
+        ranking_strategy: RankingStrategy | None = None,
     ) -> None:
         """Initialize the semantic retrieval service."""
         self.embedding_provider = embedding_provider
         self.vector_store = vector_store
+        self.ranking_strategy = ranking_strategy or SimilarityRanker()
 
     def retrieve(
         self,
         request: RetrievalRequest,
     ) -> RetrievalResponse:
-        """Retrieve relevant evidence for a research query."""
+        """Retrieve and rank relevant evidence for a research query."""
         query_embedding = self.embedding_provider.embed_text(
             request.query
         )
@@ -40,8 +46,12 @@ class SemanticRetrievalService(RetrievalService):
             metadata_filter=request.metadata_filter,
         )
 
+        ranked_results = self.ranking_strategy.rank(
+            search_response.results
+        )
+
         return RetrievalResponse(
             query=request.query,
-            results=search_response.results,
-            total_results=len(search_response.results),
+            results=ranked_results,
+            total_results=len(ranked_results),
         )
