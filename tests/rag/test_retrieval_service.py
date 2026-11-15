@@ -81,8 +81,9 @@ def test_retrieve_returns_semantically_relevant_results(
         "machine learning"
     )
     vector_store.search.assert_called_once_with(
-        query_vector=[0.1, 0.2, 0.3],
+        query_vector=embedding_provider.embed_text.return_value,
         top_k=3,
+        metadata_filter=None,
     )
 
 
@@ -125,3 +126,28 @@ def test_retrieve_rejects_invalid_embedding(
         )
 
     vector_store.search.assert_not_called()
+
+def test_retrieve_passes_metadata_filter(
+    retrieval_service,
+    embedding_provider,
+    vector_store,
+):
+    from researchpilot.rag.vectorstore.filters import MetadataFilter
+
+    metadata_filter = MetadataFilter(
+        conditions={"source": "paper-1"}
+    )
+
+    request = RetrievalRequest(
+        query="machine learning",
+        top_k=3,
+        metadata_filter=metadata_filter,
+    )
+
+    retrieval_service.retrieve(request)
+
+    vector_store.search.assert_called_once_with(
+        query_vector=embedding_provider.embed_text.return_value,
+        top_k=3,
+        metadata_filter=metadata_filter,
+    )

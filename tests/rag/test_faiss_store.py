@@ -200,3 +200,88 @@ def test_search_top_k_larger_than_index(store, sample_records):
     response = store.search([1.0, 0.0, 0.0], top_k=10)
 
     assert response.total_results == 3
+
+
+def test_search_filters_records_by_metadata(store, sample_records):
+    from researchpilot.rag.vectorstore.filters import MetadataFilter
+
+    store.add_records(sample_records)
+
+    metadata_filter = MetadataFilter(
+        conditions={"source": "paper-1"}
+    )
+
+    response = store.search(
+        query_vector=[1.0, 0.0, 0.0],
+        top_k=5,
+        metadata_filter=metadata_filter,
+    )
+
+    assert response.total_results == 1
+    assert response.results[0].record.id == "record-1"
+
+
+def test_search_returns_empty_when_metadata_does_not_match(
+    store,
+    sample_records,
+):
+    from researchpilot.rag.vectorstore.filters import MetadataFilter
+
+    store.add_records(sample_records)
+
+    metadata_filter = MetadataFilter(
+        conditions={"source": "missing-paper"}
+    )
+
+    response = store.search(
+        query_vector=[1.0, 0.0, 0.0],
+        metadata_filter=metadata_filter,
+    )
+
+    assert response.results == []
+    assert response.total_results == 0
+
+
+def test_search_applies_top_k_after_metadata_filter(
+    store,
+    sample_records,
+):
+    from researchpilot.rag.vectorstore.filters import MetadataFilter
+
+    store.add_records(sample_records)
+
+    metadata_filter = MetadataFilter(
+        conditions={"source": "paper-1"}
+    )
+
+    response = store.search(
+        query_vector=[1.0, 0.0, 0.0],
+        top_k=1,
+        metadata_filter=metadata_filter,
+    )
+
+    assert response.total_results == 1
+    assert response.results[0].record.id == "record-1"
+
+
+def test_search_supports_multiple_metadata_conditions(
+    store,
+    sample_records,
+):
+    from researchpilot.rag.vectorstore.filters import MetadataFilter
+
+    store.add_records(sample_records)
+
+    metadata_filter = MetadataFilter(
+        conditions={
+            "source": "paper-1",
+            "missing_field": "value",
+        }
+    )
+
+    response = store.search(
+        query_vector=[1.0, 0.0, 0.0],
+        metadata_filter=metadata_filter,
+    )
+
+    assert response.total_results == 0

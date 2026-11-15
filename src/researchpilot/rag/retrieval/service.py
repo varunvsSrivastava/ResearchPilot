@@ -35,8 +35,9 @@ class SemanticRetrievalService(RetrievalService):
             raise ValueError("Invalid query embedding dimensions.")
 
         search_response = self.vector_store.search(
-            query_vector=query_embedding.vector,
+            query_vector=query_embedding,
             top_k=request.top_k,
+            metadata_filter=request.metadata_filter,
         )
 
         return RetrievalResponse(

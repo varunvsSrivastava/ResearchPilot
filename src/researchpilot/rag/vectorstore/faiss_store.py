@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 import faiss
 import numpy as np
-
+from researchpilot.rag.vectorstore.filters import MetadataFilter
 from researchpilot.rag.vectorstore.base import VectorStore
 from researchpilot.rag.vectorstore.models import (
     VectorRecord,
@@ -60,8 +60,9 @@ class FAISSVectorStore(VectorStore):
         self,
         query_vector: list[float],
         top_k: int = 5,
+        metadata_filter: MetadataFilter | None = None,
     ) -> VectorSearchResponse:
-        """Search for similar records using cosine similarity."""
+        """Search for similar records with optional metadata filtering."""
         if top_k < 1:
             raise ValueError("top_k must be positive.")
 
@@ -74,24 +75,67 @@ class FAISSVectorStore(VectorStore):
         query = np.asarray([query_vector], dtype=np.float32)
         faiss.normalize_L2(query)
 
-        limit = min(top_k, self.index.ntotal)
-        scores, indices = self.index.search(query, limit)
-
-        results = []
-
-        for score, index_position in zip(scores[0], indices[0]):
-            if index_position < 0:
-                continue
-
-            record_id = self.record_ids[index_position]
-            record = self.records[record_id]
-
-            results.append(
-                VectorSearchResult(
-                    record=record,
-                    score=float(score),
+        if metadata_filter is not None and not metadata_filter.is_empty:
+            candidate_ids = [
+                record_id
+                for record_id in self.record_ids
+                if metadata_filter.matches(
+                    self.records[record_id].metadata
                 )
+            ]
+
+            if not candidate_ids:
+                return VectorSearchResponse()
+
+            candidate_vectors = np.asarray(
+                [
+                    self.records[record_id].vector
+                    for record_id in candidate_ids
+                ],
+                dtype=np.float32,
             )
+
+            faiss.normalize_L2(candidate_vectors)
+
+            candidate_index = faiss.IndexFlatIP(self.dimensions)
+            candidate_index.add(candidate_vectors)
+
+            limit = min(top_k, len(candidate_ids))
+            scores, indices = candidate_index.search(query, limit)
+
+            results = []
+
+            for score, index_position in zip(scores[0], indices[0]):
+                if index_position < 0:
+                    continue
+
+                record_id = candidate_ids[index_position]
+
+                results.append(
+                    VectorSearchResult(
+                        record=self.records[record_id],
+                        score=float(score),
+                    )
+                )
+
+        else:
+            limit = min(top_k, self.index.ntotal)
+            scores, indices = self.index.search(query, limit)
+
+            results = []
+
+            for score, index_position in zip(scores[0], indices[0]):
+                if index_position < 0:
+                    continue
+
+                record_id = self.record_ids[index_position]
+
+                results.append(
+                    VectorSearchResult(
+                        record=self.records[record_id],
+                        score=float(score),
+                    )
+                )
 
         return VectorSearchResponse(
             results=results,

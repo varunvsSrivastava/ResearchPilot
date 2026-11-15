@@ -2,7 +2,7 @@
 """Abstract interface for vector stores."""
 
 from abc import ABC, abstractmethod
-
+from researchpilot.rag.vectorstore.filters import MetadataFilter
 from researchpilot.rag.vectorstore.models import (
     VectorRecord,
     VectorSearchResponse,
@@ -17,12 +17,16 @@ class VectorStore(ABC):
         """Add records to the vector store."""
 
     @abstractmethod
+    
+    @abstractmethod
     def search(
         self,
         query_vector: list[float],
         top_k: int = 5,
+        metadata_filter: MetadataFilter | None = None,
     ) -> VectorSearchResponse:
-        """Search for similar vectors."""
+        """Search for similar vectors with optional metadata filtering."""
+
 
     @abstractmethod
     def delete_records(self, record_ids: list[str]) -> None:

@@ -2,7 +2,7 @@
 """Models for semantic retrieval."""
 
 from pydantic import BaseModel, Field
-
+from researchpilot.rag.vectorstore.filters import MetadataFilter
 from researchpilot.rag.vectorstore.models import VectorSearchResult
 
 
@@ -11,6 +11,7 @@ class RetrievalRequest(BaseModel):
 
     query: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1)
+    metadata_filter: MetadataFilter | None = None
 
 
 class RetrievalResponse(BaseModel):
