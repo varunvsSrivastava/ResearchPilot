@@ -42,3 +42,25 @@ def get_pdf_download_timeout() -> float:
 def get_pdf_max_size_bytes() -> int:
     """Return the maximum allowed PDF size in bytes."""
     return int(os.getenv("PDF_MAX_SIZE_BYTES", str(50 * 1024 * 1024)))
+
+
+def get_openai_embedding_model() -> str:
+    """Return the configured OpenAI embedding model."""
+    return os.getenv(
+        "OPENAI_EMBEDDING_MODEL",
+        "text-embedding-3-small",
+    )
+
+
+def get_openai_embedding_dimensions() -> int:
+    """Return the configured OpenAI embedding dimensions."""
+    dimensions = int(
+        os.getenv("OPENAI_EMBEDDING_DIMENSIONS", "1536")
+    )
+
+    if dimensions < 1:
+        raise ValueError(
+            "OPENAI_EMBEDDING_DIMENSIONS must be positive."
+        )
+
+    return dimensions
