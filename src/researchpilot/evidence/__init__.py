@@ -15,7 +15,8 @@ from researchpilot.evidence.contradiction import ContradictionDetector
 from researchpilot.evidence.contradiction_evaluator import (
     ContradictionEvaluator,
 )
-
+from researchpilot.evidence.synthesis import ResearchSynthesizer
+from researchpilot.evidence.synthesis_service import ResearchSynthesisService
 
 __all__ = [
     "EvidenceEvaluator",
@@ -26,4 +27,6 @@ __all__ = [
     "EvidenceCoverageEvaluator",
     "ContradictionDetector",
     "ContradictionEvaluator",
+    "ResearchSynthesizer",
+    "ResearchSynthesisService",
 ]
