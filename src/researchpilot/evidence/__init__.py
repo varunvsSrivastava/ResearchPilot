@@ -11,6 +11,10 @@ from researchpilot.evidence.coverage import EvidenceCoverageAnalyzer
 from researchpilot.evidence.coverage_evaluator import (
     EvidenceCoverageEvaluator,
 )
+from researchpilot.evidence.contradiction import ContradictionDetector
+from researchpilot.evidence.contradiction_evaluator import (
+    ContradictionEvaluator,
+)
 
 
 __all__ = [
@@ -20,4 +24,6 @@ __all__ = [
     "SourceEvaluator",
     "EvidenceCoverageAnalyzer",
     "EvidenceCoverageEvaluator",
+    "ContradictionDetector",
+    "ContradictionEvaluator",
 ]
