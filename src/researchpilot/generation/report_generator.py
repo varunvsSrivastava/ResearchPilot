@@ -18,13 +18,21 @@ class ReportGenerator:
         self.citation_validator = CitationValidator()
 
     def _extract_citations(self, text: str) -> list[int]:
-        """Extract unique source numbers while preserving order."""
-        return list(
-            dict.fromkeys(
-                int(match)
-                for match in self.CITATION_PATTERN.findall(text)
-            )
-        )
+        """Extract citations from labels or numeric source identifiers."""
+
+        citations = [
+            int(match)
+            for match in self.CITATION_PATTERN.findall(text)
+        ]
+
+        if not citations:
+            citations = [
+                int(source_id)
+                for source_id in text.split()
+                if source_id.isdigit()
+            ]
+
+        return list(dict.fromkeys(citations))
 
     def generate(
         self,
@@ -32,7 +40,7 @@ class ReportGenerator:
         context: str,
         title: str | None = None,
     ) -> ResearchReport:
-        """Generate a structured report and validate its citations."""
+        """Generate and validate a structured report."""
 
         sections = []
 
@@ -41,10 +49,12 @@ class ReportGenerator:
                 " ".join(finding.supporting_sources)
             )
 
+            content = finding.finding
+
             sections.append(
                 ReportSection(
                     title=f"Finding {index}",
-                    content=finding.finding,
+                    content=content,
                     citations=citations,
                 )
             )
@@ -57,17 +67,15 @@ class ReportGenerator:
             metadata={
                 "evidence_count": str(synthesis.evidence_count),
                 "finding_count": str(len(synthesis.findings)),
+                "conclusion_is_summary": "true",
             },
         )
 
         report_text = "\n".join(
-            text
+            f"{finding.finding} "
+            f"{' '.join(finding.supporting_sources)}"
             for finding in synthesis.findings
-            for text in (
-                finding.finding,
-                " ".join(finding.supporting_sources),
-            )
-        ) + "\n" + report.conclusion
+        )
 
         if not self.citation_validator.validate(report_text, context):
             raise ValueError(

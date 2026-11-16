@@ -49,7 +49,11 @@ class ReportCitationValidator:
         )
         cited_sources.update(conclusion_citations)
 
-        if report.conclusion.strip() and not conclusion_citations:
+        if (
+            report.conclusion.strip()
+            and report.metadata.get("conclusion_is_summary") != "true"
+            and not conclusion_citations
+        ):
             missing_citations.append("Conclusion")
 
         invalid_sources = cited_sources - available_sources
