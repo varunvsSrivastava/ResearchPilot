@@ -225,7 +225,9 @@ class ResearchOrchestrator:
                 status="completed",
             )
 
-            # 7. Complete agent with final report
+            # 7. Preserve structured result and complete agent
+            agent.research_result = report_result
+
             final_report = str(report_result.report)
             agent.complete(final_report)
 

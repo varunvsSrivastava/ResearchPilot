@@ -126,3 +126,36 @@ def test_pipeline_handles_empty_retrieved_evidence():
     assert result.synthesis.evidence_count == 0
     assert result.report.sections == []
     assert result.citation_validation.is_valid
+
+def test_pipeline_excludes_evidence_missing_from_context():
+    """Only evidence represented in context should enter synthesis."""
+
+    pipeline = ResearchReportPipeline()
+
+    retrieved_results = make_retrieved_results()
+
+    context = (
+        "[Source 1]\n"
+        "Evidence ID: 1\n"
+        "Title: Healthcare AI Study\n"
+        "Evidence:\n"
+        "AI improves diagnostic accuracy in healthcare."
+    )
+
+    result = pipeline.run(
+        research_question="How does AI improve healthcare?",
+        retrieved_results=retrieved_results,
+        papers=make_papers(),
+        context=context,
+        covered_aspects=["diagnostics"],
+        all_aspects=["diagnostics"],
+    )
+
+    assert len(result.evaluated_evidence) == 1
+    assert result.evaluated_evidence[0].evidence.source_id == "1"
+
+    assert result.synthesis.evidence_count == 1
+    assert len(result.synthesis.findings) == 1
+
+    assert result.report.sections[0].citations == [1]
+    assert result.citation_validation.is_valid

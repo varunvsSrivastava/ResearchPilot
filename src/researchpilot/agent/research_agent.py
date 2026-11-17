@@ -23,6 +23,7 @@ class ResearchAgent:
         self.state = ResearchAgentState(
             research_question=research_question
         )
+        self.research_result = None
 
     def start(self) -> ResearchAgentState:
         """Start agent execution."""

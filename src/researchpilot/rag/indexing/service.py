@@ -29,6 +29,7 @@ class EvidenceIndexingService(EvidenceIndexer):
         request: IndexingRequest | None = None,
     ) -> IndexingResult:
         """Embed and index evidence records."""
+
         request = request or IndexingRequest()
 
         selected_evidence = evidence
@@ -40,13 +41,17 @@ class EvidenceIndexingService(EvidenceIndexer):
                 for item in evidence
                 if item.evidence_id in selected_ids
             ]
+
         requested_evidence_count = len(selected_evidence)
+
         if not selected_evidence:
             return IndexingResult()
 
         existing_ids = set(
             getattr(self.vector_store, "records", {}).keys()
         )
+
+        skipped_count = 0
 
         if request.overwrite:
             existing_evidence = [
@@ -59,16 +64,22 @@ class EvidenceIndexingService(EvidenceIndexer):
                 self.vector_store.delete_records(existing_evidence)
 
         else:
-            selected_evidence = [
+            new_evidence = [
                 item
                 for item in selected_evidence
                 if item.evidence_id not in existing_ids
             ]
 
+            skipped_count = (
+                requested_evidence_count - len(new_evidence)
+            )
+            selected_evidence = new_evidence
+
         if not selected_evidence:
             return IndexingResult(
                 total_evidence=requested_evidence_count,
                 indexed_evidence=0,
+                skipped_evidence=skipped_count,
                 failed_evidence=0,
             )
 
@@ -76,7 +87,11 @@ class EvidenceIndexingService(EvidenceIndexer):
         failed_count = 0
         errors = []
 
-        for start in range(0, len(selected_evidence), request.batch_size):
+        for start in range(
+            0,
+            len(selected_evidence),
+            request.batch_size,
+        ):
             batch = selected_evidence[
                 start:start + request.batch_size
             ]
@@ -119,6 +134,7 @@ class EvidenceIndexingService(EvidenceIndexer):
         return IndexingResult(
             total_evidence=requested_evidence_count,
             indexed_evidence=indexed_count,
+            skipped_evidence=skipped_count,
             failed_evidence=failed_count,
             errors=errors,
         )

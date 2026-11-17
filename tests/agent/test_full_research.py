@@ -81,6 +81,7 @@ def test_execute_full_research_completes_workflow(mock_plan):
 
     assert agent.state.status == "completed"
     assert agent.state.final_answer == "Final research report"
+    assert agent.research_result is report_pipeline.run.return_value
 
     retrieval_pipeline.execute.assert_called_once_with(plan)
     indexing_service.index_evidence.assert_called_once_with(["evidence"])

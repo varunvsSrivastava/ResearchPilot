@@ -9,15 +9,19 @@ class IndexingResult(BaseModel):
 
     total_evidence: int = 0
     indexed_evidence: int = 0
+    skipped_evidence: int = 0
     failed_evidence: int = 0
     errors: list[str] = Field(default_factory=list)
 
     @property
     def is_successful(self) -> bool:
-        """Return whether all evidence was indexed successfully."""
+        """Return whether all evidence was indexed or already available."""
         return (
             self.failed_evidence == 0
-            and self.indexed_evidence == self.total_evidence
+            and (
+                self.indexed_evidence + self.skipped_evidence
+                == self.total_evidence
+            )
         )
 
 

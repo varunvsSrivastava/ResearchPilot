@@ -95,3 +95,99 @@ def test_extract_citations_preserves_order(generator):
     )
 
     assert citations == [2, 1, 3]
+
+
+def test_generate_report_maps_evidence_ids_to_source_citations(generator):
+    """Map original evidence IDs to numeric context citations."""
+
+    synthesis = ResearchSynthesis(
+        research_question="How does RAG work?",
+        findings=[
+            ResearchFinding(
+                finding="RAG retrieves relevant evidence.",
+                supporting_sources=["doc-101"],
+                evidence_count=1,
+                confidence_score=0.95,
+            ),
+            ResearchFinding(
+                finding="RAG improves grounding.",
+                supporting_sources=["doc-202"],
+                evidence_count=1,
+                confidence_score=0.90,
+            ),
+        ],
+        evidence_count=2,
+        synthesis_summary="RAG improves evidence grounding.",
+    )
+
+    context = (
+        "[Source 1]\n"
+        "Evidence ID: doc-101\n"
+        "Evidence: RAG retrieves relevant evidence.\n\n"
+        "[Source 2]\n"
+        "Evidence ID: doc-202\n"
+        "Evidence: RAG improves grounding."
+    )
+
+    report = generator.generate(synthesis, context)
+
+    assert report.sections[0].citations == [1]
+    assert report.sections[1].citations == [2]
+
+
+def test_generate_report_rejects_unknown_evidence_id(generator):
+    """Reject evidence IDs that cannot be mapped to context citations."""
+
+    synthesis = ResearchSynthesis(
+        research_question="How does RAG work?",
+        findings=[
+            ResearchFinding(
+                finding="RAG improves grounding.",
+                supporting_sources=["unknown-doc"],
+                evidence_count=1,
+                confidence_score=0.9,
+            )
+        ],
+        evidence_count=1,
+        synthesis_summary="RAG improves grounding.",
+    )
+
+    context = (
+        "[Source 1]\n"
+        "Evidence ID: doc-101\n"
+        "Evidence: RAG retrieves relevant evidence."
+    )
+
+    with pytest.raises(ValueError, match="no valid source references"):
+        generator.generate(synthesis, context)
+
+
+def test_generate_report_preserves_multiple_source_citations(generator):
+    """Preserve all supporting source references for a finding."""
+
+    synthesis = ResearchSynthesis(
+        research_question="How does RAG work?",
+        findings=[
+            ResearchFinding(
+                finding="RAG improves evidence grounding.",
+                supporting_sources=["doc-101", "doc-202"],
+                evidence_count=2,
+                confidence_score=0.95,
+            )
+        ],
+        evidence_count=2,
+        synthesis_summary="RAG improves evidence grounding.",
+    )
+
+    context = (
+        "[Source 1]\n"
+        "Evidence ID: doc-101\n"
+        "Evidence: Evidence one.\n\n"
+        "[Source 2]\n"
+        "Evidence ID: doc-202\n"
+        "Evidence: Evidence two."
+    )
+
+    report = generator.generate(synthesis, context)
+
+    assert report.sections[0].citations == [1, 2]

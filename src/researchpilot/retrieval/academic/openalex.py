@@ -1,4 +1,9 @@
 
+"""OpenAlex academic search provider."""
+
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
@@ -11,14 +16,25 @@ class OpenAlexProvider(AcademicSearchProvider):
     """Academic search provider backed by the OpenAlex Works API."""
 
     BASE_URL = "https://api.openalex.org/works"
+    RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
     def __init__(
         self,
         api_key: str | None = None,
         timeout: float = 30.0,
+        max_retries: int = 3,
+        backoff_factor: float = 1.0,
     ) -> None:
+        if max_retries < 0:
+            raise ValueError("max_retries cannot be negative.")
+
+        if backoff_factor < 0:
+            raise ValueError("backoff_factor cannot be negative.")
+
         self.api_key = api_key
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.backoff_factor = backoff_factor
 
     @staticmethod
     def _reconstruct_abstract(
@@ -126,6 +142,72 @@ class OpenAlexProvider(AcademicSearchProvider):
             search_query=query,
         )
 
+    def _get_retry_delay(
+        self,
+        response: httpx.Response | None,
+        attempt: int,
+    ) -> float:
+        """Calculate retry delay, respecting Retry-After when available."""
+        if response is not None:
+            retry_after = response.headers.get("Retry-After")
+
+            if retry_after:
+                try:
+                    return max(0.0, float(retry_after))
+                except ValueError:
+                    try:
+                        retry_at = parsedate_to_datetime(retry_after)
+
+                        if retry_at.tzinfo is None:
+                            retry_at = retry_at.replace(
+                                tzinfo=timezone.utc
+                            )
+
+                        return max(
+                            0.0,
+                            (
+                                retry_at
+                                - datetime.now(timezone.utc)
+                            ).total_seconds(),
+                        )
+                    except (TypeError, ValueError, OverflowError):
+                        pass
+
+        return self.backoff_factor * (2 ** attempt)
+
+    def _get_with_retries(
+        self,
+        client: httpx.Client,
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Execute an HTTP request with bounded retries."""
+        for attempt in range(self.max_retries + 1):
+            response = None
+
+            try:
+                response = client.get(self.BASE_URL, params=params)
+
+                if response.status_code in self.RETRYABLE_STATUS_CODES:
+                    if attempt == self.max_retries:
+                        response.raise_for_status()
+
+                    delay = self._get_retry_delay(response, attempt)
+                    time.sleep(delay)
+                    continue
+
+                response.raise_for_status()
+                return response.json()
+
+            except (httpx.TimeoutException, httpx.TransportError):
+                if attempt == self.max_retries:
+                    raise
+
+                time.sleep(
+                    self._get_retry_delay(None, attempt)
+                )
+
+        raise RuntimeError("OpenAlex request exhausted its retries.")
+
     def search(
         self,
         query: str,
@@ -147,9 +229,7 @@ class OpenAlexProvider(AcademicSearchProvider):
             params["api_key"] = self.api_key
 
         with httpx.Client(timeout=self.timeout) as client:
-            response = client.get(self.BASE_URL, params=params)
-            response.raise_for_status()
-            data = response.json()
+            data = self._get_with_retries(client, params)
 
         return [
             self._parse_work(work, query)

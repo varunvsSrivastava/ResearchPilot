@@ -1,6 +1,8 @@
 
 """Orchestrate evidence evaluation and research report generation."""
 
+import re
+
 from researchpilot.evidence.coverage_evaluator import (
     EvidenceCoverageEvaluator,
 )
@@ -22,6 +24,8 @@ from .report_generator import ReportGenerator
 class ResearchReportPipeline:
     """Coordinate evidence evaluation, synthesis, and report generation."""
 
+    EVIDENCE_ID_PATTERN = re.compile(r"Evidence ID:\s*(\S+)")
+
     def __init__(
         self,
         evidence_evaluator: EvidenceEvaluator | None = None,
@@ -34,9 +38,7 @@ class ResearchReportPipeline:
     ) -> None:
         """Initialize pipeline dependencies."""
 
-        self.evidence_evaluator = (
-            evidence_evaluator or EvidenceEvaluator()
-        )
+        self.evidence_evaluator = evidence_evaluator or EvidenceEvaluator()
         self.source_evaluator = source_evaluator or SourceEvaluator()
         self.coverage_evaluator = (
             coverage_evaluator or EvidenceCoverageEvaluator()
@@ -52,6 +54,11 @@ class ResearchReportPipeline:
             citation_validator or ReportCitationValidator()
         )
 
+    @classmethod
+    def _get_context_evidence_ids(cls, context: str) -> set[str]:
+        """Extract evidence IDs represented in the supplied context."""
+        return set(cls.EVIDENCE_ID_PATTERN.findall(context))
+
     def run(
         self,
         research_question: str,
@@ -62,10 +69,21 @@ class ResearchReportPipeline:
         all_aspects: list[str],
         title: str | None = None,
     ) -> ResearchPipelineResult:
-        """Run the complete evidence-to-report workflow."""
+        """Run the complete evidence-to-report pipeline."""
+
+        context_evidence_ids = self._get_context_evidence_ids(context)
+
+        if context_evidence_ids:
+            report_results = [
+                result
+                for result in retrieved_results
+                if result.record.id in context_evidence_ids
+            ]
+        else:
+            report_results = retrieved_results
 
         evaluated_evidence = self.evidence_evaluator.evaluate(
-            results=retrieved_results,
+            results=report_results,
             research_question=research_question,
         )
 

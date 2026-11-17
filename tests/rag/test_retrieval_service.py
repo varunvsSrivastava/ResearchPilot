@@ -84,7 +84,7 @@ def test_retrieve_returns_semantically_relevant_results(
         "machine learning"
     )
     vector_store.search.assert_called_once_with(
-        query_vector=embedding_provider.embed_text.return_value,
+        query_vector=embedding_provider.embed_text.return_value.vector,
         top_k=3,
         metadata_filter=None,
     )
@@ -150,7 +150,7 @@ def test_retrieve_passes_metadata_filter(
     retrieval_service.retrieve(request)
 
     vector_store.search.assert_called_once_with(
-        query_vector=embedding_provider.embed_text.return_value,
+        query_vector=embedding_provider.embed_text.return_value.vector,
         top_k=3,
         metadata_filter=metadata_filter,
     )

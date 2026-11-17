@@ -47,6 +47,31 @@ def test_indexing_result_partial_success():
     assert not result.is_successful
 
 
+def test_indexing_result_success_with_skipped_evidence():
+    """Treat indexed and already-existing evidence as successful."""
+    result = IndexingResult(
+        total_evidence=10,
+        indexed_evidence=8,
+        skipped_evidence=2,
+        failed_evidence=0,
+    )
+
+    assert result.is_successful
+    assert result.indexed_evidence + result.skipped_evidence == 10
+
+
+def test_indexing_result_failure_with_skipped_evidence():
+    """Detect failures even when some evidence was skipped."""
+    result = IndexingResult(
+        total_evidence=10,
+        indexed_evidence=7,
+        skipped_evidence=2,
+        failed_evidence=1,
+    )
+
+    assert not result.is_successful
+    assert result.failed_evidence == 1
+
 def test_indexing_result_empty():
     """Represent an empty indexing operation."""
     result = IndexingResult()

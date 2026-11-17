@@ -86,4 +86,8 @@ def test_rag_pipeline_integrates_semantic_retrieval_and_context():
     embedding_provider.embed_text.assert_called_once_with(
         "machine learning"
     )
-    vector_store.search.assert_called_once()
+    vector_store.search.assert_called_once_with(
+        query_vector=[0.1, 0.2, 0.3],
+        top_k=2,
+        metadata_filter=None,
+    )
