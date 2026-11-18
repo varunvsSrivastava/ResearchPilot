@@ -1,0 +1,281 @@
+
+/* ============================================
+   RESEARCHPILOT
+   Warm Academic Theme
+   ============================================ */
+
+:root {
+    --rp-background: #F8F5F0;
+    --rp-sidebar: #3B111B;
+    --rp-primary: #651C2D;
+    --rp-primary-dark: #4B1422;
+    --rp-secondary: #EFE7DC;
+    --rp-card: #FFFCF8;
+    --rp-text: #292329;
+    --rp-muted: #766B68;
+    --rp-border: #DCCABD;
+    --rp-success: #287A4B;
+}
+
+/* Global application */
+
+.stApp,
+[data-testid="stAppViewContainer"] {
+    background-color: var(--rp-background);
+    color: var(--rp-text);
+}
+
+[data-testid="stHeader"] {
+    background-color: var(--rp-background);
+}
+
+.block-container {
+    max-width: 1250px;
+    padding-top: 2.2rem;
+    padding-bottom: 3rem;
+}
+
+/* Main typography */
+
+.stApp h1,
+.stApp h2,
+.stApp h3,
+.stApp h4 {
+    color: var(--rp-text) !important;
+}
+
+.stApp p,
+.stApp li,
+.stApp label,
+.stMarkdown {
+    color: var(--rp-text);
+}
+
+[data-testid="stCaptionContainer"] p {
+    color: var(--rp-muted) !important;
+}
+
+[data-testid="stWidgetLabel"] p {
+    color: var(--rp-text) !important;
+    font-weight: 600;
+}
+
+/* Sidebar */
+
+[data-testid="stSidebar"] {
+    background-color: var(--rp-sidebar);
+    border-right: 1px solid #552632;
+}
+
+[data-testid="stSidebar"] * {
+    color: #FFF9F3;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #FFF9F3 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+    color: #D8C3BB !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+    color: #F5E9E2 !important;
+}
+
+/* Sidebar inputs */
+
+[data-testid="stSidebar"] input {
+    background-color: #51202C !important;
+    color: #FFF9F3 !important;
+    border: 1px solid #946D75 !important;
+}
+
+[data-testid="stSidebar"] input::placeholder {
+    color: #E0CBCB !important;
+}
+
+/* Brand header */
+
+.rp-header {
+    position: relative;
+    padding: 1.5rem 0 1.6rem;
+    border-bottom: 1px solid var(--rp-border);
+    margin-bottom: 2rem;
+}
+
+.rp-brand {
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -1.2px;
+    color: var(--rp-primary);
+}
+
+.rp-brand span {
+    color: #956474;
+}
+
+.rp-subtitle {
+    color: var(--rp-muted);
+    font-size: 0.95rem;
+    margin-top: 0.35rem;
+}
+
+/* Section headings */
+
+.rp-section-title {
+    color: var(--rp-primary);
+    font-size: 1.3rem;
+    font-weight: 750;
+    margin: 1.5rem 0 0.8rem;
+}
+
+.rp-muted {
+    color: var(--rp-muted);
+    font-size: 0.9rem;
+}
+
+/* Cards */
+
+.rp-card {
+    background-color: var(--rp-card);
+    border: 1px solid var(--rp-border);
+    border-radius: 12px;
+    padding: 1.4rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 12px rgba(59, 17, 27, 0.045);
+}
+
+/* Text input and text area */
+
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input {
+    background-color: var(--rp-card) !important;
+    color: var(--rp-text) !important;
+    -webkit-text-fill-color: var(--rp-text) !important;
+    border: 1px solid var(--rp-border) !important;
+    border-radius: 9px !important;
+}
+
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: #766B68 !important;
+    -webkit-text-fill-color: #766B68 !important;
+    opacity: 1 !important;
+}
+
+.stTextInput input:focus,
+.stTextArea textarea:focus {
+    border-color: var(--rp-primary) !important;
+    box-shadow: 0 0 0 1px var(--rp-primary) !important;
+}
+
+/* Buttons */
+
+div.stButton > button {
+    background-color: var(--rp-primary);
+    color: #FFFFFF !important;
+    border: 1px solid var(--rp-primary);
+    border-radius: 8px;
+    font-weight: 650;
+    min-height: 2.7rem;
+    transition: background-color 0.2s ease;
+}
+
+div.stButton > button p {
+    color: #FFFFFF !important;
+}
+
+div.stButton > button:hover {
+    background-color: var(--rp-primary-dark);
+    border-color: var(--rp-primary-dark);
+    color: #FFFFFF !important;
+}
+
+div.stButton > button[kind="primary"] {
+    background-color: var(--rp-primary);
+    color: #FFFFFF !important;
+    border: 1px solid var(--rp-primary);
+}
+
+div.stButton > button[kind="primary"]:hover {
+    background-color: var(--rp-primary-dark);
+}
+
+/* Metrics */
+
+div[data-testid="stMetric"] {
+    background-color: var(--rp-card);
+    border: 1px solid var(--rp-border);
+    border-radius: 11px;
+    padding: 1.1rem;
+    box-shadow: 0 3px 12px rgba(59, 17, 27, 0.04);
+}
+
+div[data-testid="stMetricLabel"] {
+    color: var(--rp-muted) !important;
+}
+
+div[data-testid="stMetricValue"] {
+    color: var(--rp-primary) !important;
+}
+
+/* Expanders */
+
+[data-testid="stExpander"] {
+    background-color: var(--rp-card);
+    border: 1px solid var(--rp-border);
+    border-radius: 10px;
+}
+
+[data-testid="stExpander"] summary {
+    color: var(--rp-primary) !important;
+}
+
+/* Tabs */
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 12px;
+    border-bottom: 1px solid var(--rp-border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: var(--rp-muted);
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--rp-primary) !important;
+    border-bottom-color: var(--rp-primary) !important;
+}
+
+/* Progress bar */
+
+.stProgress > div > div > div {
+    background-color: var(--rp-primary);
+}
+
+/* Success messages */
+
+[data-testid="stAlert"] {
+    border-radius: 9px;
+}
+
+/* Dividers */
+
+hr {
+    border-color: var(--rp-border) !important;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #BDA99A;
+    border-radius: 10px;
+}
