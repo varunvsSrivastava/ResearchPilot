@@ -116,3 +116,38 @@ def test_agent_rejects_zero_max_steps():
             "How does RAG improve research?",
             max_steps=0,
         )
+
+def test_agent_cannot_record_steps_after_completion():
+    agent = ResearchAgent("How does RAG improve research?")
+    agent.start()
+    agent.complete("Research completed.")
+
+    with pytest.raises(RuntimeError):
+        agent.record_step(action="another_step")
+
+
+def test_agent_cannot_record_steps_after_failure():
+    agent = ResearchAgent("How does RAG improve research?")
+    agent.start()
+    agent.fail("Execution failed.")
+
+    with pytest.raises(RuntimeError):
+        agent.record_step(action="another_step")
+
+
+def test_agent_cannot_fail_after_completion():
+    agent = ResearchAgent("How does RAG improve research?")
+    agent.start()
+    agent.complete("Research completed.")
+
+    with pytest.raises(RuntimeError):
+        agent.fail("Late failure.")
+
+
+def test_agent_cannot_complete_after_failure():
+    agent = ResearchAgent("How does RAG improve research?")
+    agent.start()
+    agent.fail("Execution failed.")
+
+    with pytest.raises(RuntimeError):
+        agent.complete("Late completion.")

@@ -191,7 +191,7 @@ def test_execute_research_skips_academic_search_without_queries(
     registry.register(rag_tool)
 
     orchestrator = ResearchOrchestrator(registry)
-    
+
     agent = orchestrator.execute_research("Research question")
 
     assert agent.state.status == "running"
@@ -219,7 +219,7 @@ def test_execute_research_runs_academic_search(mock_generate_plan):
     rag_tool.args_schema.model_validate.return_value = MagicMock()
     rag_tool.execute.return_value = ["retrieved evidence"]
     registry.register(rag_tool)
-    
+
     orchestrator = ResearchOrchestrator(registry)
     agent = orchestrator.execute_research("Research question")
 
@@ -349,7 +349,7 @@ def test_execute_research_completes_with_generated_answer():
 
     assert agent.state.status == "completed"
     assert agent.state.final_answer == "Grounded research answer"
-    
+
 def test_execute_tool_rejects_terminal_agent():
     orchestrator = ResearchOrchestrator(ToolRegistry())
     agent = orchestrator.create_agent("Research question")
@@ -365,7 +365,7 @@ def test_execute_tool_rejects_terminal_agent():
             "rag_retrieval",
             {"query": "Research question"},
         )
-        
+
 def test_execute_tool_respects_agent_step_limit():
     orchestrator = ResearchOrchestrator(
         ToolRegistry(),
@@ -384,3 +384,22 @@ def test_execute_tool_respects_agent_step_limit():
             action="Exceed limit",
             status="completed",
         )
+
+def test_execute_tool_rejects_pending_agent():
+    registry = ToolRegistry()
+    tool = MagicMock()
+    tool.name = "mock_tool"
+    registry.register(tool)
+
+    orchestrator = ResearchOrchestrator(registry)
+    agent = orchestrator.create_agent("Research question")
+
+    with pytest.raises(
+        RuntimeError,
+        match="Agent must be running",
+    ):
+        orchestrator.execute_tool(agent, tool.name, {})
+
+    tool.execute.assert_not_called()
+    assert agent.state.status == "pending"
+    assert agent.state.step_count == 0

@@ -41,8 +41,12 @@ def build_dependencies():
     )
 
     report_pipeline = MagicMock()
+
+    structured_report = MagicMock()
+    structured_report.conclusion = "Research conclusion based on evidence"
+
     report_pipeline.run.return_value = MagicMock(
-        report="Final research report",
+        report=structured_report,
     )
 
     return (
@@ -80,8 +84,13 @@ def test_execute_full_research_completes_workflow(mock_plan):
     agent = orchestrator.execute_full_research("Research question")
 
     assert agent.state.status == "completed"
-    assert agent.state.final_answer == "Final research report"
+    assert agent.state.final_answer == "Research conclusion based on evidence"
     assert agent.research_result is report_pipeline.run.return_value
+    assert (
+        agent.research_result.report
+        is report_pipeline.run.return_value.report
+    )
+    assert "ResearchReport(" not in agent.state.final_answer
 
     retrieval_pipeline.execute.assert_called_once_with(plan)
     indexing_service.index_evidence.assert_called_once_with(["evidence"])

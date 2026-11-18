@@ -12,7 +12,6 @@ from researchpilot.generation.report_pipeline import ResearchReportPipeline
 from researchpilot.rag.retrieval.models import RetrievalRequest
 from researchpilot.evidence.aspect_coverage import AspectCoverageAssessor
 
-
 class ResearchOrchestrator:
     """Coordinate planning and research tool execution."""
 
@@ -46,7 +45,6 @@ class ResearchOrchestrator:
     def plan_research(self, research_question: str):
         """Generate a structured research plan."""
         return generate_research_plan(research_question)
-
 
     def execute_research(self, research_question: str) -> ResearchAgent:
         """Generate a research plan and execute research tools."""
@@ -228,15 +226,14 @@ class ResearchOrchestrator:
             # 7. Preserve structured result and complete agent
             agent.research_result = report_result
 
-            final_report = str(report_result.report)
-            agent.complete(final_report)
+            final_answer = report_result.report.conclusion
+            agent.complete(final_answer)
 
         except Exception as exc:
             if agent.state.status == "running":
                 agent.fail(str(exc))
 
         return agent
-
 
     def execute_tool(
         self,
@@ -249,6 +246,11 @@ class ResearchOrchestrator:
         if agent.state.is_terminal:
             raise RuntimeError(
                 "Cannot execute tools for a terminal agent."
+            )
+
+        if agent.state.status != "running":
+            raise RuntimeError(
+                "Agent must be running to execute tools."
             )
 
         try:
