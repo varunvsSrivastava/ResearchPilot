@@ -118,3 +118,17 @@ def test_evidence_rejects_empty_text(
 
     with pytest.raises(ValueError):
         EvidenceGenerator().generate(invalid_chunk)
+
+def test_evidence_id_changes_when_text_changes(
+    text_chunk: TextChunk,
+) -> None:
+    generator = EvidenceGenerator()
+
+    first = generator.generate(text_chunk)
+
+    modified_chunk = text_chunk.model_copy(
+        update={"text": "Modified research evidence."}
+    )
+    second = generator.generate(modified_chunk)
+
+    assert first.evidence_id != second.evidence_id

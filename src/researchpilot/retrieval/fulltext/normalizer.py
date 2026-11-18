@@ -8,14 +8,17 @@ from researchpilot.retrieval.fulltext.models import (
     ExtractedPage,
 )
 
-
 class TextNormalizer:
-    """Normalize PDF-extracted text while preserving page metadata."""
+    """Normalize PDF-extracted text while preserving block boundaries."""
 
-    def normalize_page(self, text: str) -> str:
-        """Normalize text extracted from a single PDF page."""
+    def normalize_block(self, text: str) -> str:
+        """Normalize a single extracted text block."""
         if not text:
             return ""
+
+        # Normalize line endings and whitespace characters.
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = text.replace("\t", " ").replace("\u00a0", " ")
 
         # Reconstruct words split by end-of-line hyphenation.
         text = re.sub(
@@ -24,31 +27,31 @@ class TextNormalizer:
             text,
         )
 
-        # Normalize line endings.
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        # Join wrapped lines within the same block.
+        text = re.sub(r"\s+", " ", text).strip()
 
-        # Convert tabs and non-breaking spaces.
-        text = text.replace("\t", " ").replace("\u00a0", " ")
+        return text
 
-        # Preserve paragraph boundaries while joining wrapped lines.
-        paragraphs = re.split(r"\n\s*\n+", text)
+    def normalize_page(self, text: str) -> str:
+        """Normalize page text while preserving block boundaries."""
+        if not text:
+            return ""
 
-        normalized_paragraphs = []
+        blocks = re.split(r"\n\s*\n+", text)
 
-        for paragraph in paragraphs:
-            # Collapse whitespace inside each paragraph.
-            paragraph = re.sub(r"\s+", " ", paragraph).strip()
+        normalized_blocks = [
+            normalized
+            for block in blocks
+            if (normalized := self.normalize_block(block))
+        ]
 
-            if paragraph:
-                normalized_paragraphs.append(paragraph)
-
-        return "\n\n".join(normalized_paragraphs)
+        return "\n\n".join(normalized_blocks)
 
     def normalize_document(
         self,
         document: ExtractedDocument,
     ) -> ExtractedDocument:
-        """Normalize extracted text without losing page provenance."""
+        """Normalize extracted text without losing page metadata."""
         normalized_pages = [
             ExtractedPage(
                 page_number=page.page_number,

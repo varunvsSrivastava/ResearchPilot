@@ -130,3 +130,96 @@ def test_empty_page_produces_no_chunks() -> None:
     chunks = TextChunker().chunk_document(document)
 
     assert chunks == []
+
+def test_chunks_start_at_word_boundaries() -> None:
+    text = (
+        "alpha beta gamma delta epsilon zeta "
+        "eta theta iota kappa lambda mu"
+    )
+
+    document = ExtractedDocument(
+        paper_id="W123",
+        title="Boundary Paper",
+        source_url="https://example.org/paper",
+        pdf_url="https://example.org/paper.pdf",
+        file_path=Path("sample.pdf"),
+        pages=[
+            ExtractedPage(page_number=1, text=text),
+        ],
+    )
+
+    chunks = TextChunker(
+        chunk_size=30,
+        overlap=10,
+    ).chunk_document(document)
+
+    assert len(chunks) > 1
+
+    for chunk in chunks:
+        assert chunk.start_char == 0 or text[
+            chunk.start_char - 1
+        ].isspace(), (
+            f"Chunk starts in the middle of a word: "
+            f"{chunk.text!r}"
+        )
+
+
+def test_overlap_preserves_context() -> None:
+    text = (
+        "alpha beta gamma delta epsilon zeta "
+        "eta theta iota kappa lambda mu"
+    )
+
+    document = ExtractedDocument(
+        paper_id="W123",
+        title="Overlap Paper",
+        source_url="https://example.org/paper",
+        pdf_url="https://example.org/paper.pdf",
+        file_path=Path("sample.pdf"),
+        pages=[
+            ExtractedPage(page_number=1, text=text),
+        ],
+    )
+
+    chunks = TextChunker(
+        chunk_size=30,
+        overlap=10,
+    ).chunk_document(document)
+
+    assert len(chunks) > 1
+
+    for previous, current in zip(chunks, chunks[1:]):
+        assert current.start_char < previous.end_char
+        assert all(
+            current.start_char > previous.start_char
+            for previous, current in zip(chunks, chunks[1:])
+        )
+
+def test_overlap_fallback_does_not_start_inside_long_word() -> None:
+    long_word = "supercalifragilisticexpialidocious"
+    text = f"alpha {long_word} beta gamma delta epsilon"
+
+    document = ExtractedDocument(
+        paper_id="W128",
+        title="Long Word Paper",
+        source_url="https://example.org/paper",
+        pdf_url="https://example.org/paper.pdf",
+        file_path=Path("sample.pdf"),
+        pages=[
+            ExtractedPage(page_number=1, text=text),
+        ],
+    )
+
+    chunks = TextChunker(
+        chunk_size=40,
+        overlap=10,
+    ).chunk_document(document)
+
+    assert len(chunks) > 1
+
+    for chunk in chunks[1:]:
+        assert chunk.start_char == 0 or text[
+            chunk.start_char - 1
+        ].isspace(), (
+            f"Chunk starts inside a word: {chunk.text!r}"
+        )

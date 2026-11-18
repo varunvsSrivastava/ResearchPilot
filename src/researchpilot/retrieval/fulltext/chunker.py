@@ -1,4 +1,3 @@
-
 """Paragraph-aware text chunking for academic documents."""
 
 from researchpilot.retrieval.fulltext.models import (
@@ -65,15 +64,15 @@ class TextChunker:
             if end < text_length:
                 end = self._find_boundary(text, start, end)
 
-            chunk_text = text[start:end].strip()
+            raw_chunk = text[start:end]
+            chunk_text = raw_chunk.strip()
 
             if chunk_text:
-                # Adjust offsets to exclude surrounding whitespace.
-                leading_whitespace = len(text[start:end]) - len(
-                    text[start:end].lstrip()
+                leading_whitespace = len(raw_chunk) - len(
+                    raw_chunk.lstrip()
                 )
-                trailing_whitespace = len(text[start:end]) - len(
-                    text[start:end].rstrip()
+                trailing_whitespace = len(raw_chunk) - len(
+                    raw_chunk.rstrip()
                 )
 
                 actual_start = start + leading_whitespace
@@ -99,10 +98,19 @@ class TextChunker:
             if end >= text_length:
                 break
 
-            next_start = end - self.overlap
+            target_start = end - self.overlap
 
-            # Guarantee forward progress.
-            start = max(next_start, start + 1)
+            next_start = self._find_overlap_start(
+                text=text,
+                target=target_start,
+                previous_end=end,
+            )
+
+            # Preserve word boundaries and guarantee forward progress.
+            if next_start <= start:
+                start = end
+            else:
+                start = next_start
 
         return chunks
 
@@ -134,3 +142,45 @@ class TextChunker:
             return whitespace_boundary
 
         return end
+
+    def _find_overlap_start(
+        self,
+        text: str,
+        target: int,
+        previous_end: int,
+    ) -> int:
+        """Find a safe overlap start at a word boundary."""
+        if target <= 0:
+            return 0
+
+        if target >= previous_end:
+            return target
+
+        # If target is already at a whitespace boundary,
+        # it is safe to start there.
+        if text[target].isspace():
+            return target
+
+        # Move forward to the next whitespace boundary.
+        next_whitespace = target
+
+        while (
+            next_whitespace < previous_end
+            and not text[next_whitespace].isspace()
+        ):
+            next_whitespace += 1
+
+        if next_whitespace < previous_end:
+            return next_whitespace
+
+        # If no whitespace exists before previous_end,
+        # move backward to the preceding boundary.
+        previous_whitespace = target
+
+        while (
+            previous_whitespace > 0
+            and not text[previous_whitespace - 1].isspace()
+        ):
+            previous_whitespace -= 1
+
+        return previous_whitespace

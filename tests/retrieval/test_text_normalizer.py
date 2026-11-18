@@ -120,3 +120,12 @@ def test_normalization_does_not_modify_original(
     normalizer.normalize_document(extracted_document)
 
     assert extracted_document.pages[0].text == original_text
+
+def test_normalizes_special_whitespace(
+    normalizer: TextNormalizer,
+) -> None:
+    result = normalizer.normalize_page(
+        "ResearchPilot\r\nis\u00a0an\rAI\tassistant."
+    )
+
+    assert result == "ResearchPilot is an AI assistant."

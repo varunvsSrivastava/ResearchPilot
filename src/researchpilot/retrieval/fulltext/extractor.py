@@ -11,16 +11,14 @@ from researchpilot.retrieval.fulltext.models import (
     PDFDocument,
 )
 
-
 class PDFExtractionError(Exception):
     """Raised when PDF text extraction fails."""
 
-
 class PDFExtractor:
-    """Extract page-wise text from academic PDF documents."""
+    """Extract page-wise text blocks from academic PDF documents."""
 
     def extract(self, document: PDFDocument) -> ExtractedDocument:
-        """Extract text from every page of a PDF document."""
+        """Extract text blocks from every PDF page."""
         pdf_path = Path(document.file_path)
 
         if not pdf_path.is_file():
@@ -35,13 +33,23 @@ class PDFExtractor:
                         f"File is not a PDF: {pdf_path}"
                     )
 
-                pages = [
-                    ExtractedPage(
-                        page_number=page_number,
-                        text=page.get_text("text"),
+                pages = []
+
+                for page_number, page in enumerate(pdf, start=1):
+                    blocks = page.get_text("blocks")
+
+                    page_text = "\n\n".join(
+                        block[4].strip()
+                        for block in blocks
+                        if block[4].strip()
                     )
-                    for page_number, page in enumerate(pdf, start=1)
-                ]
+
+                    pages.append(
+                        ExtractedPage(
+                            page_number=page_number,
+                            text=page_text,
+                        )
+                    )
 
         except PDFExtractionError:
             raise

@@ -11,7 +11,13 @@ from researchpilot.retrieval.fulltext.service import (
     FullTextAcquisitionService,
 )
 from researchpilot.retrieval.models import Paper
-
+from researchpilot.retrieval.fulltext.chunker import TextChunker
+from researchpilot.retrieval.fulltext.evidence import EvidenceGenerator
+from researchpilot.retrieval.fulltext.models import (
+    ExtractedDocument,
+    ExtractedPage,
+)
+from researchpilot.retrieval.fulltext.normalizer import TextNormalizer
 
 @pytest.fixture
 def paper() -> Paper:
@@ -177,3 +183,72 @@ def test_acquire_returns_empty_when_no_chunks(
 
     assert result == []
     service.evidence_generator.generate_many.assert_called_once_with([])
+
+def test_acquire_preserves_normalized_evidence(
+    paper: Paper,
+    tmp_path: Path,
+) -> None:
+    pdf_path = tmp_path / "paper.pdf"
+    pdf_path.write_bytes(b"%PDF-sample")
+
+    extracted_document = ExtractedDocument(
+        paper_id=paper.paper_id,
+        title=paper.title,
+        doi=paper.doi,
+        source_url=paper.source_url,
+        pdf_url=paper.pdf_url,
+        file_path=pdf_path,
+        pages=[
+            ExtractedPage(
+                page_number=1,
+                text=(
+                    "Retrieval aug-\n"
+                    "mented generation improves factual accuracy.\n\n"
+                    "It supports evidence-based research."
+                ),
+            )
+        ],
+    )
+
+    extractor = Mock()
+    extractor.extract.return_value = extracted_document
+
+    service = FullTextAcquisitionService(
+        downloader=Mock(),
+        extractor=extractor,
+        normalizer=TextNormalizer(),
+        chunker=TextChunker(
+            chunk_size=100,
+            overlap=20,
+        ),
+        evidence_generator=EvidenceGenerator(),
+    )
+
+    service.downloader.download.return_value = pdf_path
+
+    evidence_records = service.acquire(paper)
+
+    assert len(evidence_records) >= 1
+
+    combined_text = " ".join(
+        evidence.text for evidence in evidence_records
+    )
+
+    assert "augmented generation" in combined_text
+    assert "factual accuracy" in combined_text
+    assert "evidence-based research" in combined_text
+
+    assert all(
+        evidence.paper_id == paper.paper_id
+        for evidence in evidence_records
+    )
+
+    assert all(
+        evidence.page_number == 1
+        for evidence in evidence_records
+    )
+
+    assert all(
+        evidence.start_char < evidence.end_char
+        for evidence in evidence_records
+    )
