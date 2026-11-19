@@ -23,15 +23,15 @@ class EvidenceIndexingService(EvidenceIndexer):
         self.embedding_provider = embedding_provider
         self.vector_store = vector_store
 
+
     def index_evidence(
         self,
         evidence: list[Evidence],
         request: IndexingRequest | None = None,
     ) -> IndexingResult:
-        """Embed and index evidence records."""
+        """Embed and index unique academic evidence records."""
 
         request = request or IndexingRequest()
-
         selected_evidence = evidence
 
         if request.evidence_ids:
@@ -47,11 +47,23 @@ class EvidenceIndexingService(EvidenceIndexer):
         if not selected_evidence:
             return IndexingResult()
 
+        # Deduplicate incoming evidence while preserving its first occurrence.
+        unique_evidence: list[Evidence] = []
+        seen_ids: set[str] = set()
+
+        for item in selected_evidence:
+            if item.evidence_id not in seen_ids:
+                unique_evidence.append(item)
+                seen_ids.add(item.evidence_id)
+
+        duplicate_count = requested_evidence_count - len(unique_evidence)
+        selected_evidence = unique_evidence
+
         existing_ids = set(
             getattr(self.vector_store, "records", {}).keys()
         )
 
-        skipped_count = 0
+        skipped_count = duplicate_count
 
         if request.overwrite:
             existing_evidence = [
@@ -70,9 +82,7 @@ class EvidenceIndexingService(EvidenceIndexer):
                 if item.evidence_id not in existing_ids
             ]
 
-            skipped_count = (
-                requested_evidence_count - len(new_evidence)
-            )
+            skipped_count += len(selected_evidence) - len(new_evidence)
             selected_evidence = new_evidence
 
         if not selected_evidence:
@@ -101,28 +111,26 @@ class EvidenceIndexingService(EvidenceIndexer):
                     [item.text for item in batch]
                 )
 
-                records = []
-
-                for item, embedding in zip(
-                    batch,
-                    embedding_batch.embeddings,
-                ):
-                    records.append(
-                        VectorRecord(
-                            id=item.evidence_id,
-                            text=item.text,
-                            vector=embedding.vector,
-                            metadata={
-                                "paper_id": item.paper_id,
-                                "title": item.title,
-                                "doi": item.doi or "",
-                                "source_url": item.source_url,
-                                "pdf_url": item.pdf_url,
-                                "page_number": item.page_number,
-                                "chunk_index": item.chunk_index,
-                            },
-                        )
+                records = [
+                    VectorRecord(
+                        id=item.evidence_id,
+                        text=item.text,
+                        vector=embedding.vector,
+                        metadata={
+                            "paper_id": item.paper_id,
+                            "title": item.title,
+                            "doi": item.doi or "",
+                            "source_url": item.source_url,
+                            "pdf_url": item.pdf_url,
+                            "page_number": item.page_number,
+                            "chunk_index": item.chunk_index,
+                        },
                     )
+                    for item, embedding in zip(
+                        batch,
+                        embedding_batch.embeddings,
+                    )
+                ]
 
                 self.vector_store.add_records(records)
                 indexed_count += len(records)
